@@ -1,5 +1,5 @@
-$botToken = "YOUR_BOT_TOKEN"
-$chatID = "YOUR_CHAT_ID"
+$botToken = "8165382603:AAFpWXF4cf0LKa1d4AuT1xhEkedp8Du5W9U"
+$chatID = "1749223364"
 $apiURL = "https://api.telegram.org/bot$botToken"
 $lastUpdateID = 0
 
